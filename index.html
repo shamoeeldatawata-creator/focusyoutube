@@ -9,10 +9,10 @@
     <meta name="theme-color" content="#0a0a0a">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
-    <!-- PWA Links: Using relative path for manifest -->
+    <!-- PWA Links -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.png">
     
     <title>FocusTube</title>
     
@@ -49,23 +49,22 @@
             color: #bef264;
         }
         .pagination-btn.active { background-color: #10b981; color: white; border-color: #10b981; }
-
         .hidden-element { display: none !important; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+    <header class="p-4 flex items-center justify-between border-b border-zinc-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <h1 class="text-xl font-bold tracking-tighter flex items-center gap-2">
             <i data-lucide="play-circle" class="text-emerald-500"></i>
             FOCUS<span class="text-emerald-500">TUBE</span>
         </h1>
-        <div id="app-status-badge" class="hidden-element px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-bold text-emerald-500 tracking-widest uppercase">
-            App Mode
+        <div id="pwa-status" class="hidden-element px-2 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] rounded-full border border-emerald-500/20 font-bold uppercase tracking-widest">
+            App Active
         </div>
     </header>
 
-    <div class="p-4 bg-zinc-950 shadow-inner">
+    <div class="p-4 bg-zinc-950">
         <div class="relative flex items-center max-w-lg mx-auto">
             <input 
                 type="text" 
@@ -75,13 +74,14 @@
                 onkeypress="if(event.key === 'Enter') performSearch(1)"
             >
             <i data-lucide="search" class="absolute left-4 w-4 h-4 text-zinc-500"></i>
-            <button onclick="performSearch(1)" class="absolute right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold active:bg-emerald-700">Go</button>
+            <button onclick="performSearch(1)" class="absolute right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold">Go</button>
         </div>
     </div>
 
     <main id="main-content" class="flex-grow p-4 flex flex-col items-center">
         <div id="status-msg" class="flex-grow flex flex-col items-center justify-center text-center space-y-8 mt-10">
-            <div class="focus-glow cursor-pointer transition-transform active:scale-90" onclick="document.getElementById('search-input').focus()">
+            <!-- Glowing Focus Play Icon -->
+            <div class="focus-glow cursor-pointer" onclick="document.getElementById('search-input').focus()">
                 <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
                     <path d="M15.5 12L10 15.5V8.5L15.5 12Z" fill="currentColor"/>
@@ -90,12 +90,11 @@
             <div class="space-y-6">
                 <div class="space-y-2">
                     <h2 class="text-2xl font-black text-emerald-400 tracking-tight uppercase">Zone In</h2>
-                    <p class="text-zinc-500 max-w-[280px] mx-auto text-sm leading-relaxed">
-                        Pure focus playback. No ads, no sidebars, no distractions.
-                    </p>
+                    <p class="text-zinc-500 max-w-[280px] mx-auto text-sm">Distraction-free learning engine.</p>
                 </div>
                 
-                <button id="pwa-install-btn" class="hidden-element mx-auto flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-emerald-500/20 active:scale-95">
+                <!-- Native PWA Install Button -->
+                <button id="pwa-install-btn" class="hidden-element mx-auto flex items-center gap-3 bg-emerald-500 text-black px-8 py-4 rounded-2xl font-black shadow-xl active:scale-95 transition-transform">
                     <i data-lucide="plus-circle" class="w-5 h-5"></i>
                     INSTALL APP
                 </button>
@@ -109,7 +108,7 @@
     <div id="player-overlay">
         <div class="p-4 flex items-center gap-4 bg-black border-b border-zinc-900">
             <button onclick="exitPlayer()" class="p-2 bg-zinc-900 rounded-full text-emerald-500"><i data-lucide="arrow-left"></i></button>
-            <h2 id="playing-title" class="text-sm font-medium truncate flex-grow text-emerald-100 uppercase tracking-widest">Now Playing</h2>
+            <h2 id="playing-title" class="text-xs font-medium truncate flex-grow text-emerald-100 uppercase">Now Playing</h2>
         </div>
         <div class="flex-grow bg-black overflow-hidden relative" id="yt-frame-container"></div>
         <div class="p-4 bg-zinc-950 safe-bottom text-center">
@@ -125,21 +124,18 @@
 
         lucide.createIcons();
 
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('SW Registered');
-                }).catch(err => {
-                    console.warn('SW Registration Failed', err);
-                });
+                navigator.serviceWorker.register('sw.js');
             });
         }
 
         const installBtn = document.getElementById('pwa-install-btn');
-        const badge = document.getElementById('app-status-badge');
+        const badge = document.getElementById('pwa-status');
 
+        // Handle Installation Event
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('beforeinstallprompt event fired');
             e.preventDefault();
             deferredPrompt = e;
             installBtn.classList.remove('hidden-element');
@@ -153,7 +149,7 @@
             installBtn.classList.add('hidden-element');
         });
 
-        window.addEventListener('appinstalled', (evt) => {
+        window.addEventListener('appinstalled', () => {
             installBtn.classList.add('hidden-element');
             badge.classList.remove('hidden-element');
         });
@@ -175,7 +171,7 @@
             grid.classList.add('hidden');
             pagination.classList.add('hidden');
             status.classList.remove('hidden');
-            status.innerHTML = `<div class="animate-pulse flex flex-col items-center gap-4"><div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><p class="text-emerald-500 font-black tracking-widest uppercase text-xs">Fetching...</p></div>`;
+            status.innerHTML = `<div class="animate-pulse flex flex-col items-center gap-4 text-emerald-500"><div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><p class="font-bold text-xs uppercase">Fetching...</p></div>`;
 
             const pageToken = pageTokens[pageNumber - 1] || '';
             const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}${pageToken ? `&pageToken=${pageToken}` : ''}`;
@@ -193,11 +189,11 @@
                 
                 data.items.forEach(video => {
                     const card = document.createElement('div');
-                    card.className = "video-card group flex flex-col bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all active:scale-95";
+                    card.className = "video-card bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all active:scale-95";
                     card.onclick = () => launchVideo(video.id.videoId, video.snippet.title);
                     card.innerHTML = `
                         <div class="aspect-video relative">
-                            <img src="${video.snippet.thumbnails.high.url}" class="w-full h-full object-cover grayscale-[0.2]">
+                            <img src="${video.snippet.thumbnails.high.url}" class="w-full h-full object-cover">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/20">
                                 <div class="bg-emerald-500 p-4 rounded-full shadow-xl"><i data-lucide="play" class="fill-black text-black w-6 h-6"></i></div>
                             </div>
@@ -208,7 +204,6 @@
 
                 renderPagination(pageNumber);
                 lucide.createIcons();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (error) { status.innerHTML = `<p class="text-red-500 font-bold uppercase text-xs">Error: ${error.message}</p>`; }
         }
 

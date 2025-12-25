@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FocusTube">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
-    <!-- App Icon Links -->
+    <!-- PWA Links -->
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
     
     <title>FocusTube</title>
     
-    <!-- Tailwind for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide for App Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -27,9 +27,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow-x: hidden;
         }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
         .video-card:active { transform: scale(0.98); opacity: 0.8; }
-        
         #player-overlay {
             background: #000;
             display: none;
@@ -38,43 +36,23 @@
             z-index: 100;
             flex-direction: column;
         }
-        
         .active-player { display: flex !important; }
-        
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            pointer-events: auto;
-        }
+        iframe { width: 100%; height: 100%; border: none; }
 
-        /* Focus Glow Animation */
+        /* Glowing Lime Green Play Icon */
         @keyframes focus-pulse {
-            0%, 100% { filter: drop-shadow(0 0 20px rgba(163, 230, 53, 0.6)); transform: scale(1); opacity: 0.9; }
-            50% { filter: drop-shadow(0 0 45px rgba(163, 230, 53, 1)); transform: scale(1.1); opacity: 1; }
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(163, 230, 53, 0.5)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 35px rgba(163, 230, 53, 1)); transform: scale(1.08); }
         }
         .focus-glow {
             animation: focus-pulse 2.5s ease-in-out infinite;
-            color: #bef264; /* Lime Green 300 */
+            color: #bef264;
         }
-        
-        /* Disable external clicks inside iframe if possible */
-        .iframe-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        .pagination-btn.active {
-            background-color: #10b981;
-            color: white;
-            border-color: #10b981;
-        }
+        .pagination-btn.active { background-color: #10b981; color: white; border-color: #10b981; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <!-- Mobile Header -->
     <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <h1 class="text-xl font-bold tracking-tighter flex items-center gap-2">
             <i data-lucide="play-circle" class="text-emerald-500"></i>
@@ -82,7 +60,6 @@
         </h1>
     </header>
 
-    <!-- Search Section -->
     <div class="p-4 bg-zinc-950 shadow-inner">
         <div class="relative flex items-center max-w-lg mx-auto">
             <input 
@@ -93,18 +70,15 @@
                 onkeypress="if(event.key === 'Enter') performSearch(1)"
             >
             <i data-lucide="search" class="absolute left-4 w-4 h-4 text-zinc-500"></i>
-            <button onclick="performSearch(1)" class="absolute right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold active:bg-emerald-700">
-                Go
-            </button>
+            <button onclick="performSearch(1)" class="absolute right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold active:bg-emerald-700">Go</button>
         </div>
     </div>
 
-    <!-- Main Content -->
     <main id="main-content" class="flex-grow p-4 flex flex-col items-center">
-        <!-- Initial Start Page State -->
         <div id="status-msg" class="flex-grow flex flex-col items-center justify-center text-center space-y-8 mt-10">
+            <!-- Lime Green Glowing Focus Play Button -->
             <div class="focus-glow cursor-pointer transition-transform active:scale-90" onclick="document.getElementById('search-input').focus()">
-                <svg width="128" height="128" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
                     <path d="M15.5 12L10 15.5V8.5L15.5 12Z" fill="currentColor"/>
                 </svg>
@@ -112,33 +86,21 @@
             <div class="space-y-4">
                 <h2 class="text-2xl font-black text-emerald-400 tracking-tight">ZONE IN</h2>
                 <p class="text-zinc-500 max-w-[280px] mx-auto text-sm leading-relaxed">
-                    Enter a keyword to unlock your distraction-free library. Redirection is disabled.
+                    Search above to start your clean session.
                 </p>
             </div>
         </div>
 
-        <!-- Video Results Grid -->
         <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full hidden"></div>
-        
-        <!-- Pagination Controls -->
-        <div id="pagination-container" class="mt-8 flex items-center gap-2 pb-10 hidden">
-            <!-- Buttons 1, 2, 3... will be injected here -->
-        </div>
+        <div id="pagination-container" class="mt-8 flex items-center gap-2 pb-10 hidden"></div>
     </main>
 
-    <!-- Fullscreen App Player -->
     <div id="player-overlay">
         <div class="p-4 flex items-center gap-4 bg-black border-b border-zinc-900">
-            <button onclick="exitPlayer()" class="p-2 bg-zinc-900 rounded-full text-emerald-500">
-                <i data-lucide="arrow-left"></i>
-            </button>
+            <button onclick="exitPlayer()" class="p-2 bg-zinc-900 rounded-full text-emerald-500"><i data-lucide="arrow-left"></i></button>
             <h2 id="playing-title" class="text-sm font-medium truncate flex-grow text-emerald-100 uppercase tracking-widest">Now Playing</h2>
         </div>
-        
-        <div class="flex-grow bg-black overflow-hidden relative" id="yt-frame-container">
-            <!-- Iframe Injected Here -->
-        </div>
-
+        <div class="flex-grow bg-black overflow-hidden relative" id="yt-frame-container"></div>
         <div class="p-4 bg-zinc-950 safe-bottom text-center">
             <p class="text-[10px] text-emerald-500/60 font-black tracking-[0.3em] uppercase">No Redirection • Pure Focus</p>
         </div>
@@ -147,32 +109,28 @@
     <script>
         const API_KEY = 'AIzaSyA4z6nqFaDwHLU1ATkGzZEQUpeUmXsKCh4';
         let currentQuery = '';
-        let pageTokens = ['']; // Index 0 is empty (page 1)
+        let pageTokens = [''];
 
-        // Initialize Icons
         lucide.createIcons();
 
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+        }
+
         async function performSearch(pageNumber = 1) {
-            const input = document.getElementById('search-input');
-            const query = input.value.trim();
+            const query = document.getElementById('search-input').value.trim();
             const grid = document.getElementById('video-grid');
             const status = document.getElementById('status-msg');
             const pagination = document.getElementById('pagination-container');
             
             if (!query) return;
-            
-            if (query !== currentQuery) {
-                currentQuery = query;
-                pageTokens = [''];
-            }
+            if (query !== currentQuery) { currentQuery = query; pageTokens = ['']; }
 
             grid.classList.add('hidden');
             pagination.classList.add('hidden');
             status.classList.remove('hidden');
-            status.innerHTML = `<div class="animate-pulse flex flex-col items-center gap-4">
-                <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-emerald-500 font-black tracking-widest uppercase text-xs">Fetching Results...</p>
-            </div>`;
+            status.innerHTML = `<div class="animate-pulse flex flex-col items-center gap-4"><div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><p class="text-emerald-500 font-black tracking-widest uppercase text-xs">Fetching...</p></div>`;
 
             const pageToken = pageTokens[pageNumber - 1] || '';
             const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}${pageToken ? `&pageToken=${pageToken}` : ''}`;
@@ -180,55 +138,41 @@
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                
                 if (data.error) throw new Error(data.error.message);
-                
-                if (data.nextPageToken && !pageTokens[pageNumber]) {
-                    pageTokens[pageNumber] = data.nextPageToken;
-                }
+                if (data.nextPageToken && !pageTokens[pageNumber]) pageTokens[pageNumber] = data.nextPageToken;
 
                 status.classList.add('hidden');
                 grid.classList.remove('hidden');
                 pagination.classList.remove('hidden');
-                
                 grid.innerHTML = '';
+                
                 data.items.forEach(video => {
                     const card = document.createElement('div');
                     card.className = "video-card group flex flex-col bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all active:scale-95";
                     card.onclick = () => launchVideo(video.id.videoId, video.snippet.title);
                     card.innerHTML = `
                         <div class="aspect-video relative">
-                            <img src="${video.snippet.thumbnails.high.url}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all">
+                            <img src="${video.snippet.thumbnails.high.url}" class="w-full h-full object-cover grayscale-[0.2]">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/20">
-                                <div class="bg-emerald-500 p-4 rounded-full shadow-xl shadow-emerald-500/20 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-                                    <i data-lucide="play" class="fill-black text-black w-6 h-6"></i>
-                                </div>
+                                <div class="bg-emerald-500 p-4 rounded-full shadow-xl"><i data-lucide="play" class="fill-black text-black w-6 h-6"></i></div>
                             </div>
                         </div>
-                        <div class="p-4">
-                            <h3 class="text-xs font-bold line-clamp-2 text-zinc-100 uppercase tracking-wide leading-relaxed">${video.snippet.title}</h3>
-                            <p class="text-[10px] text-emerald-500/70 mt-2 font-black uppercase tracking-widest">${video.snippet.channelTitle}</p>
-                        </div>
-                    `;
+                        <div class="p-4"><h3 class="text-xs font-bold line-clamp-2 uppercase">${video.snippet.title}</h3></div>`;
                     grid.appendChild(card);
                 });
 
                 renderPagination(pageNumber);
                 lucide.createIcons();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-            } catch (error) { 
-                status.innerHTML = `<p class="text-red-500 font-bold uppercase text-xs">Search failed: ${error.message}</p>`; 
-            }
+            } catch (error) { status.innerHTML = `<p class="text-red-500 font-bold uppercase text-xs">Error: ${error.message}</p>`; }
         }
 
         function renderPagination(current) {
             const container = document.getElementById('pagination-container');
             container.innerHTML = '';
-            
             for (let i = 1; i <= Math.min(5, pageTokens.length + (pageTokens[current] ? 1 : 0)); i++) {
                 const btn = document.createElement('button');
-                btn.className = `pagination-btn w-10 h-10 rounded-xl border border-zinc-800 font-black text-xs transition-all ${i === current ? 'active' : 'bg-zinc-900 text-zinc-400'}`;
+                btn.className = `pagination-btn w-10 h-10 rounded-xl border border-zinc-800 font-black text-xs ${i === current ? 'active' : 'bg-zinc-900 text-zinc-400'}`;
                 btn.innerText = i;
                 btn.onclick = () => performSearch(i);
                 container.appendChild(btn);
@@ -239,30 +183,16 @@
             const overlay = document.getElementById('player-overlay');
             const container = document.getElementById('yt-frame-container');
             document.getElementById('playing-title').innerText = title;
-
             const origin = 'https://www.youtube.com';
             const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}&playsinline=1&disablekb=1`;
 
-            container.innerHTML = `
-                <div class="iframe-container">
-                    <iframe 
-                        id="focus-player"
-                        src="${embedUrl}" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        referrerpolicy="strict-origin-when-cross-origin"
-                        sandbox="allow-scripts allow-same-origin allow-presentation"
-                        allowfullscreen>
-                    </iframe>
-                </div>
-            `;
-
+            container.innerHTML = `<iframe id="focus-player" src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allowfullscreen></iframe>`;
             overlay.classList.add('active-player');
             document.body.style.overflow = 'hidden';
         }
 
         function exitPlayer() {
-            const overlay = document.getElementById('player-overlay');
-            overlay.classList.remove('active-player');
+            document.getElementById('player-overlay').classList.remove('active-player');
             document.getElementById('yt-frame-container').innerHTML = '';
             document.body.style.overflow = 'auto';
         }

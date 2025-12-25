@@ -2,7 +2,7 @@ const CACHE_NAME = 'focustube-v2';
 const ASSETS = [
   'index.html',
   'manifest.json',
-  'https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.png'
+  'https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube-192x192.png'
 ];
 
 // Install: Cache basic assets
@@ -39,4 +39,5 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+
 });

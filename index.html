@@ -125,9 +125,12 @@
         lucide.createIcons();
 
         // Service Worker Registration
-        if ('serviceWorker' in navigator) {
+        // Added a check for local/blob protocols to prevent registration errors in preview environments
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
+                navigator.serviceWorker.register('sw.js').catch(err => {
+                    console.warn('ServiceWorker registration skipped or failed:', err);
+                });
             });
         }
 

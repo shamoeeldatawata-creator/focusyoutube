@@ -1,0 +1,16 @@
+{
+"name": "FocusTube",
+"short_name": "FocusTube",
+"description": "Distraction-free learning via YouTube",
+"start_url": "focustube.html",
+"display": "standalone",
+"background_color": "#0a0a0a",
+"theme_color": "#0a0a0a",
+"icons": [
+{
+"src": "https://www.google.com/search?q=https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico",
+"sizes": "64x64 32x32 24x24 16x16",
+"type": "image/x-icon"
+}
+]
+}

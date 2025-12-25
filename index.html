@@ -2,199 +2,301 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Fix for Error 153: Ensures the browser sends the necessary referrer info to YouTube -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>FocusTube - Distraction Free Learning</title>
+    <title>FocusTube</title>
+    
+    <!-- Tailwind for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide for App Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         body {
             background-color: #0a0a0a;
             color: #efefef;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
         }
-        .video-card:hover img {
-            transform: scale(1.05);
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .video-card:active { transform: scale(0.98); opacity: 0.8; }
+        
+        #player-overlay {
+            background: #000;
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            flex-direction: column;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #444;
-        }
+        
+        .active-player { display: flex !important; }
+        
         iframe {
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            width: 100%;
+            height: 100%;
+            border: none;
+            pointer-events: auto;
+        }
+
+        /* Focus Glow Animation */
+        @keyframes focus-pulse {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(163, 230, 53, 0.6)); transform: scale(1); opacity: 0.9; }
+            50% { filter: drop-shadow(0 0 45px rgba(163, 230, 53, 1)); transform: scale(1.1); opacity: 1; }
+        }
+        .focus-glow {
+            animation: focus-pulse 2.5s ease-in-out infinite;
+            color: #bef264; /* Lime Green 300 */
+        }
+
+        .hidden-install { display: none !important; }
+        
+        /* Disable external clicks inside iframe if possible */
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pagination-btn.active {
+            background-color: #10b981;
+            color: white;
+            border-color: #10b981;
         }
     </style>
 </head>
-<body class="custom-scrollbar min-h-screen flex flex-col">
+<body class="flex flex-col min-h-screen">
 
-    <!-- Header / Search Bar -->
-    <header id="search-header" class="p-6 md:p-12 transition-all duration-500">
-        <div class="max-w-3xl mx-auto text-center">
-            <h1 class="text-4xl md:text-6xl font-black mb-4 tracking-tighter">
-                FOCUS<span class="text-red-600">TUBE</span>
-            </h1>
-            <p class="text-gray-400 mb-8 font-light italic">Search. Watch. Learn. No Traps.</p>
-            
-            <div class="relative flex items-center">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    placeholder="What do you want to learn?" 
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-full py-4 px-8 text-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-                    onkeypress="if(event.key === 'Enter') performSearch()"
-                >
-                <button 
-                    onclick="performSearch()"
-                    class="absolute right-2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </button>
-            </div>
+    <!-- Mobile Header -->
+    <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+        <h1 class="text-xl font-bold tracking-tighter flex items-center gap-2">
+            <i data-lucide="play-circle" class="text-emerald-500"></i>
+            FOCUS<span class="text-emerald-500">TUBE</span>
+        </h1>
+        <div id="installed-badge" class="hidden-install px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-bold text-emerald-500 tracking-widest uppercase">
+            Installed
         </div>
     </header>
 
-    <!-- Results Area -->
-    <main id="results-area" class="flex-grow container mx-auto px-6 pb-20">
-        <div id="status-msg" class="text-center text-gray-500 mt-10">
-            Enter a keyword above to start learning without distractions.
+    <!-- Search Section -->
+    <div class="p-4 bg-zinc-950 shadow-inner">
+        <div class="relative flex items-center max-w-lg mx-auto">
+            <input 
+                type="text" 
+                id="search-input" 
+                placeholder="Search focus-friendly videos..." 
+                class="w-full bg-zinc-900 border-none rounded-2xl py-3 px-11 text-base focus:ring-2 focus:ring-emerald-500 transition-all text-white"
+                onkeypress="if(event.key === 'Enter') performSearch(1)"
+            >
+            <i data-lucide="search" class="absolute left-4 w-4 h-4 text-zinc-500"></i>
+            <button onclick="performSearch(1)" class="absolute right-3 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-sm font-bold active:bg-emerald-700">
+                Go
+            </button>
         </div>
-        <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            <!-- Videos will appear here -->
+    </div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="flex-grow p-4 flex flex-col items-center">
+        <!-- Initial Start Page State -->
+        <div id="status-msg" class="flex-grow flex flex-col items-center justify-center text-center space-y-8 mt-10">
+            <div class="focus-glow">
+                <i data-lucide="target" class="w-32 h-32"></i>
+            </div>
+            <div class="space-y-4">
+                <h2 class="text-2xl font-black text-emerald-400 tracking-tight">ZONE IN</h2>
+                <p class="text-zinc-500 max-w-[280px] mx-auto text-sm leading-relaxed">
+                    Enter a keyword to unlock your distraction-free library. Redirection is disabled.
+                </p>
+                
+                <button id="install-button" class="hidden-install mx-auto flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    INSTALL APP
+                </button>
+            </div>
+        </div>
+
+        <!-- Video Results Grid -->
+        <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full hidden"></div>
+        
+        <!-- Pagination Controls -->
+        <div id="pagination-container" class="mt-8 flex items-center gap-2 pb-10 hidden">
+            <!-- Buttons 1, 2, 3... will be injected here -->
         </div>
     </main>
 
-    <!-- Fullscreen Player Overlay -->
-    <div id="player-overlay" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-500">
-        <button 
-            onclick="exitPlayer()"
-            class="absolute top-6 left-6 text-white hover:text-red-500 flex items-center gap-2 font-medium z-50 transition-colors"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            BACK TO SEARCH
-        </button>
-        
-        <div class="w-full max-w-6xl aspect-video bg-zinc-900" id="iframe-container">
-            <!-- Iframe injected here -->
+    <!-- Fullscreen App Player -->
+    <div id="player-overlay">
+        <div class="p-4 flex items-center gap-4 bg-black border-b border-zinc-900">
+            <button onclick="exitPlayer()" class="p-2 bg-zinc-900 rounded-full text-emerald-500">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <h2 id="playing-title" class="text-sm font-medium truncate flex-grow text-emerald-100 uppercase tracking-widest">Now Playing</h2>
         </div>
         
-        <div class="mt-8 text-center px-6">
-            <h2 id="playing-title" class="text-xl md:text-2xl font-bold text-gray-300"></h2>
-            <p class="text-zinc-500 mt-2 italic">You are in Focus Mode. No suggestions, just your video.</p>
+        <div class="flex-grow bg-black overflow-hidden relative" id="yt-frame-container">
+            <!-- Iframe Injected Here -->
+        </div>
+
+        <div class="p-4 bg-zinc-950 safe-bottom text-center">
+            <p class="text-[10px] text-emerald-500/60 font-black tracking-[0.3em] uppercase">No Redirection • Pure Focus</p>
         </div>
     </div>
 
     <script>
         const API_KEY = 'AIzaSyA4z6nqFaDwHLU1ATkGzZEQUpeUmXsKCh4';
+        let deferredPrompt;
+        let currentQuery = '';
+        let pageTokens = ['']; // Index 0 is empty (page 1)
 
-        async function performSearch() {
+        // Initialize Icons
+        lucide.createIcons();
+
+        // PWA Installation Logic
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-button').classList.remove('hidden-install');
+        });
+
+        document.getElementById('install-button').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                document.getElementById('install-button').classList.add('hidden-install');
+            }
+        });
+
+        // Standalone detection
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            document.getElementById('installed-badge').classList.remove('hidden-install');
+        }
+
+        async function performSearch(pageNumber = 1) {
             const input = document.getElementById('search-input');
             const query = input.value.trim();
             const grid = document.getElementById('video-grid');
             const status = document.getElementById('status-msg');
-
+            const pagination = document.getElementById('pagination-container');
+            
             if (!query) return;
+            
+            // If new search, reset pagination
+            if (query !== currentQuery) {
+                currentQuery = query;
+                pageTokens = [''];
+            }
 
-            grid.innerHTML = '';
-            status.innerHTML = '<div class="flex items-center justify-center gap-3"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div> Searching...</div>';
+            grid.classList.add('hidden');
+            pagination.classList.add('hidden');
+            status.classList.remove('hidden');
+            status.innerHTML = `<div class="animate-pulse flex flex-col items-center gap-4">
+                <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-emerald-500 font-black tracking-widest uppercase text-xs">Fetching Results...</p>
+            </div>`;
+
+            const pageToken = pageTokens[pageNumber - 1] || '';
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}${pageToken ? `&pageToken=${pageToken}` : ''}`;
 
             try {
-                const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=16&q=${encodeURIComponent(query)}&type=video&key=${API_KEY}`);
+                const response = await fetch(url);
                 const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
-                if (!data.items || data.items.length === 0) {
-                    status.innerText = "No results found. Try another search.";
-                    return;
+                
+                if (data.error) throw new Error(data.error.message);
+                
+                // Store next page token
+                if (data.nextPageToken && !pageTokens[pageNumber]) {
+                    pageTokens[pageNumber] = data.nextPageToken;
                 }
 
                 status.classList.add('hidden');
+                grid.classList.remove('hidden');
+                pagination.classList.remove('hidden');
                 
+                grid.innerHTML = '';
                 data.items.forEach(video => {
-                    const videoId = video.id.videoId;
-                    const title = video.snippet.title;
-                    const thumb = video.snippet.thumbnails.high.url;
-                    
                     const card = document.createElement('div');
-                    card.className = "video-card group cursor-pointer space-y-3";
-                    card.onclick = () => launchVideo(videoId, title);
-                    
+                    card.className = "video-card group flex flex-col bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl transition-all active:scale-95";
+                    card.onclick = () => launchVideo(video.id.videoId, video.snippet.title);
                     card.innerHTML = `
-                        <div class="overflow-hidden rounded-xl bg-zinc-800 aspect-video relative">
-                            <img src="${thumb}" class="w-full h-full object-cover transition-transform duration-500" alt="${title}">
-                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                                <div class="bg-red-600 rounded-full p-3 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M8 5v14l11-7z" />
-                                    </svg>
+                        <div class="aspect-video relative">
+                            <img src="${video.snippet.thumbnails.high.url}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all">
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <div class="bg-emerald-500 p-4 rounded-full shadow-xl shadow-emerald-500/20 translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
+                                    <i data-lucide="play" class="fill-black text-black w-6 h-6"></i>
                                 </div>
                             </div>
                         </div>
-                        <h3 class="font-semibold text-sm line-clamp-2 text-zinc-300 group-hover:text-white transition-colors">
-                            ${title}
-                        </h3>
+                        <div class="p-4">
+                            <h3 class="text-xs font-bold line-clamp-2 text-zinc-100 uppercase tracking-wide leading-relaxed">${video.snippet.title}</h3>
+                            <p class="text-[10px] text-emerald-500/70 mt-2 font-black uppercase tracking-widest">${video.snippet.channelTitle}</p>
+                        </div>
                     `;
                     grid.appendChild(card);
                 });
 
-            } catch (error) {
-                status.classList.remove('hidden');
-                status.innerText = "Error: " + error.message;
-                console.error(error);
+                renderPagination(pageNumber);
+                lucide.createIcons();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            } catch (error) { 
+                status.innerHTML = `<p class="text-red-500 font-bold uppercase text-xs">Search failed: ${error.message}</p>`; 
+            }
+        }
+
+        function renderPagination(current) {
+            const container = document.getElementById('pagination-container');
+            container.innerHTML = '';
+            
+            // Show up to 5 pages
+            for (let i = 1; i <= Math.min(5, pageTokens.length + (pageTokens[current] ? 1 : 0)); i++) {
+                const btn = document.createElement('button');
+                btn.className = `pagination-btn w-10 h-10 rounded-xl border border-zinc-800 font-black text-xs transition-all ${i === current ? 'active' : 'bg-zinc-900 text-zinc-400'}`;
+                btn.innerText = i;
+                btn.onclick = () => performSearch(i);
+                container.appendChild(btn);
             }
         }
 
         function launchVideo(id, title) {
             const overlay = document.getElementById('player-overlay');
-            const container = document.getElementById('iframe-container');
-            const titleEl = document.getElementById('playing-title');
-            
-            titleEl.innerText = title;
-            
-            // referrerpolicy="strict-origin-when-cross-origin" is key to fixing Error 153
+            const container = document.getElementById('yt-frame-container');
+            document.getElementById('playing-title').innerText = title;
+
+            // Strict Focus Mode URL
+            // rel=0: No related videos (from other channels)
+            // modestbranding=1: Minimize YT branding
+            // controls=1: Allow controls but we wrap them
+            // disablekb=1: Disable keyboard shortcuts that might lead to escape
+            const origin = 'https://www.youtube.com';
+            const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}&playsinline=1&disablekb=1`;
+
             container.innerHTML = `
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen>
-                </iframe>
+                <div class="iframe-container">
+                    <iframe 
+                        id="focus-player"
+                        src="${embedUrl}" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        sandbox="allow-scripts allow-same-origin allow-presentation"
+                        allowfullscreen>
+                    </iframe>
+                </div>
             `;
 
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-                document.body.style.overflow = 'hidden';
-            }, 10);
+            overlay.classList.add('active-player');
+            document.body.style.overflow = 'hidden';
         }
 
         function exitPlayer() {
             const overlay = document.getElementById('player-overlay');
-            const container = document.getElementById('iframe-container');
-
-            overlay.classList.add('opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                container.innerHTML = ''; 
-                document.body.style.overflow = 'auto';
-            }, 500);
+            overlay.classList.remove('active-player');
+            document.getElementById('yt-frame-container').innerHTML = '';
+            document.body.style.overflow = 'auto';
         }
     </script>
 </body>

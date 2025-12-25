@@ -7,6 +7,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- App Icon Links -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
+    
     <title>FocusTube</title>
     
     <!-- Tailwind for styling -->
@@ -52,8 +57,6 @@
             animation: focus-pulse 2.5s ease-in-out infinite;
             color: #bef264; /* Lime Green 300 */
         }
-
-        .hidden-install { display: none !important; }
         
         /* Disable external clicks inside iframe if possible */
         .iframe-container {
@@ -67,18 +70,6 @@
             color: white;
             border-color: #10b981;
         }
-
-        /* Mobile Install Tooltip Overlay */
-        #mobile-install-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -89,9 +80,6 @@
             <i data-lucide="play-circle" class="text-emerald-500"></i>
             FOCUS<span class="text-emerald-500">TUBE</span>
         </h1>
-        <div id="installed-badge" class="hidden-install px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-bold text-emerald-500 tracking-widest uppercase">
-            Installed
-        </div>
     </header>
 
     <!-- Search Section -->
@@ -115,19 +103,17 @@
     <main id="main-content" class="flex-grow p-4 flex flex-col items-center">
         <!-- Initial Start Page State -->
         <div id="status-msg" class="flex-grow flex flex-col items-center justify-center text-center space-y-8 mt-10">
-            <div class="focus-glow">
-                <i data-lucide="target" class="w-32 h-32"></i>
+            <div class="focus-glow cursor-pointer transition-transform active:scale-90" onclick="document.getElementById('search-input').focus()">
+                <svg width="128" height="128" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M15.5 12L10 15.5V8.5L15.5 12Z" fill="currentColor"/>
+                </svg>
             </div>
             <div class="space-y-4">
                 <h2 class="text-2xl font-black text-emerald-400 tracking-tight">ZONE IN</h2>
                 <p class="text-zinc-500 max-w-[280px] mx-auto text-sm leading-relaxed">
                     Enter a keyword to unlock your distraction-free library. Redirection is disabled.
                 </p>
-                
-                <button id="install-button" class="mx-auto flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-3 rounded-2xl font-black transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
-                    <i data-lucide="download" class="w-5 h-5"></i>
-                    INSTALL APP
-                </button>
             </div>
         </div>
 
@@ -158,114 +144,13 @@
         </div>
     </div>
 
-    <!-- Mobile Specific Instruction Overlay -->
-    <div id="mobile-install-overlay" onclick="closeInstallOverlay()">
-        <div class="bg-zinc-900 p-8 rounded-3xl max-w-xs w-full text-center space-y-6" onclick="event.stopPropagation()">
-            <div class="bg-emerald-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto">
-                <i id="os-icon" data-lucide="plus-square" class="text-emerald-500 w-8 h-8"></i>
-            </div>
-            <h3 id="os-title" class="text-xl font-bold">Install FocusTube</h3>
-            <p id="os-instruction-text" class="text-sm text-zinc-400 leading-relaxed">Follow these steps to add to your home screen:</p>
-            <ol id="os-steps" class="text-left text-sm space-y-3 text-zinc-300">
-                <!-- Steps will be injected by JS -->
-            </ol>
-            <button onclick="closeInstallOverlay()" class="w-full py-3 bg-zinc-800 rounded-xl font-bold">Got it</button>
-        </div>
-    </div>
-
     <script>
         const API_KEY = 'AIzaSyA4z6nqFaDwHLU1ATkGzZEQUpeUmXsKCh4';
-        let deferredPrompt;
         let currentQuery = '';
         let pageTokens = ['']; // Index 0 is empty (page 1)
 
         // Initialize Icons
         lucide.createIcons();
-
-        // Installation Logic
-        const installBtn = document.getElementById('install-button');
-        const installOverlay = document.getElementById('mobile-install-overlay');
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isAndroid = /Android/.test(navigator.userAgent);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-        if (isStandalone) {
-            document.getElementById('installed-badge').classList.remove('hidden-install');
-            installBtn.classList.add('hidden-install');
-        } else {
-            // Android/Chrome Logic for native prompt
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                // Button is visible by default now to ensure user sees it
-            });
-        }
-
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                installBtn.classList.add('hidden-install');
-                return;
-            }
-
-            // Fallback for when the browser doesn't trigger beforeinstallprompt (common in sandboxes)
-            showManualInstructions();
-        });
-
-        function showManualInstructions() {
-            const steps = document.getElementById('os-steps');
-            const title = document.getElementById('os-title');
-            const icon = document.getElementById('os-icon');
-            
-            steps.innerHTML = '';
-            
-            if (isIOS) {
-                title.innerText = "Install on iPhone";
-                steps.innerHTML = `
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                        Tap the <i data-lucide="share" class="w-4 h-4 inline text-emerald-500"></i> share button below
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                        Select <b>Add to Home Screen</b>
-                    </li>
-                `;
-            } else if (isAndroid) {
-                title.innerText = "Install on Android";
-                steps.innerHTML = `
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                        Tap the <i data-lucide="more-vertical" class="w-4 h-4 inline text-emerald-500"></i> menu icon (top right)
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                        Select <b>Install App</b> or <b>Add to Home screen</b>
-                    </li>
-                `;
-            } else {
-                title.innerText = "Install App";
-                steps.innerHTML = `
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                        Open your browser menu
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                        Select <b>Install</b> or <b>Add to Home screen</b>
-                    </li>
-                `;
-            }
-            
-            installOverlay.style.display = 'flex';
-            lucide.createIcons();
-        }
-
-        function closeInstallOverlay() {
-            installOverlay.style.display = 'none';
-        }
 
         async function performSearch(pageNumber = 1) {
             const input = document.getElementById('search-input');

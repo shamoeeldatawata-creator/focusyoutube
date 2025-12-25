@@ -67,6 +67,18 @@
             color: white;
             border-color: #10b981;
         }
+
+        /* iOS Install Tooltip Overlay */
+        #ios-install-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -146,6 +158,28 @@
         </div>
     </div>
 
+    <!-- iOS Specific Instruction Overlay -->
+    <div id="ios-install-overlay" onclick="closeIosInstall()">
+        <div class="bg-zinc-900 p-8 rounded-3xl max-w-xs w-full text-center space-y-6" onclick="event.stopPropagation()">
+            <div class="bg-emerald-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto">
+                <i data-lucide="plus-square" class="text-emerald-500 w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold">Install FocusTube</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">To install this app on your iPhone:</p>
+            <ol class="text-left text-sm space-y-3 text-zinc-300">
+                <li class="flex items-center gap-3">
+                    <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                    Tap the <i data-lucide="share" class="w-4 h-4 inline text-emerald-500"></i> share button below
+                </li>
+                <li class="flex items-center gap-3">
+                    <span class="bg-zinc-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                    Select <b>Add to Home Screen</b>
+                </li>
+            </ol>
+            <button onclick="closeIosInstall()" class="w-full py-3 bg-zinc-800 rounded-xl font-bold">Got it</button>
+        </div>
+    </div>
+
     <script>
         const API_KEY = 'AIzaSyA4z6nqFaDwHLU1ATkGzZEQUpeUmXsKCh4';
         let deferredPrompt;
@@ -155,25 +189,48 @@
         // Initialize Icons
         lucide.createIcons();
 
-        // PWA Installation Logic
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-button').classList.remove('hidden-install');
-        });
+        // Installation Logic
+        const installBtn = document.getElementById('install-button');
+        const iosOverlay = document.getElementById('ios-install-overlay');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-        document.getElementById('install-button').addEventListener('click', async () => {
+        if (isStandalone) {
+            document.getElementById('installed-badge').classList.remove('hidden-install');
+            installBtn.classList.add('hidden-install');
+        } else {
+            // Android/Chrome Logic
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBtn.classList.remove('hidden-install');
+            });
+
+            // iOS Fallback (Since they don't support the native prompt)
+            if (isIOS) {
+                installBtn.classList.remove('hidden-install');
+                installBtn.innerHTML = `<i data-lucide="plus-square" class="w-5 h-5"></i> INSTALL ON PHONE`;
+                lucide.createIcons();
+            }
+        }
+
+        installBtn.addEventListener('click', async () => {
+            if (isIOS) {
+                iosOverlay.style.display = 'flex';
+                return;
+            }
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 await deferredPrompt.userChoice;
                 deferredPrompt = null;
-                document.getElementById('install-button').classList.add('hidden-install');
+                installBtn.classList.add('hidden-install');
+            } else {
+                alert("Installation is available in Chrome or Safari. Use the 'Add to Home Screen' option in your browser menu.");
             }
         });
 
-        // Standalone detection
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            document.getElementById('installed-badge').classList.remove('hidden-install');
+        function closeIosInstall() {
+            iosOverlay.style.display = 'none';
         }
 
         async function performSearch(pageNumber = 1) {
@@ -267,11 +324,6 @@
             const container = document.getElementById('yt-frame-container');
             document.getElementById('playing-title').innerText = title;
 
-            // Strict Focus Mode URL
-            // rel=0: No related videos (from other channels)
-            // modestbranding=1: Minimize YT branding
-            // controls=1: Allow controls but we wrap them
-            // disablekb=1: Disable keyboard shortcuts that might lead to escape
             const origin = 'https://www.youtube.com';
             const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}&playsinline=1&disablekb=1`;
 

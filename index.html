@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#0a0a0a">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
-    <!-- PWA Links -->
+    <!-- PWA Links: Using relative path for manifest -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico">
@@ -50,15 +50,6 @@
         }
         .pagination-btn.active { background-color: #10b981; color: white; border-color: #10b981; }
 
-        /* Install Banner Animation */
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up {
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
         .hidden-element { display: none !important; }
     </style>
 </head>
@@ -69,7 +60,6 @@
             <i data-lucide="play-circle" class="text-emerald-500"></i>
             FOCUS<span class="text-emerald-500">TUBE</span>
         </h1>
-        <!-- App Status Badge -->
         <div id="app-status-badge" class="hidden-element px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-bold text-emerald-500 tracking-widest uppercase">
             App Mode
         </div>
@@ -91,7 +81,6 @@
 
     <main id="main-content" class="flex-grow p-4 flex flex-col items-center">
         <div id="status-msg" class="flex-grow flex flex-col items-center justify-center text-center space-y-8 mt-10">
-            <!-- Lime Green Glowing Focus Play Button -->
             <div class="focus-glow cursor-pointer transition-transform active:scale-90" onclick="document.getElementById('search-input').focus()">
                 <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
@@ -106,7 +95,6 @@
                     </p>
                 </div>
                 
-                <!-- Native PWA Install Action -->
                 <button id="pwa-install-btn" class="hidden-element mx-auto flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-emerald-500/20 active:scale-95">
                     <i data-lucide="plus-circle" class="w-5 h-5"></i>
                     INSTALL APP
@@ -137,47 +125,35 @@
 
         lucide.createIcons();
 
-        // 1. Service Worker Registration (Required for PWA Install)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(reg => {
                     console.log('SW Registered');
-                }).catch(err => console.log('SW Registration Failed', err));
+                }).catch(err => {
+                    console.warn('SW Registration Failed', err);
+                });
             });
         }
 
-        // 2. Capture the 'beforeinstallprompt' event (Pure PWA Install)
         const installBtn = document.getElementById('pwa-install-btn');
         const badge = document.getElementById('app-status-badge');
 
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            console.log('beforeinstallprompt event fired');
             e.preventDefault();
-            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            // Show the install button
             installBtn.classList.remove('hidden-element');
         });
 
-        // 3. Trigger the install prompt when button is clicked
         installBtn.addEventListener('click', async () => {
             if (!deferredPrompt) return;
-            
-            // Show the install prompt
             deferredPrompt.prompt();
-            
-            // Wait for the user to respond to the prompt
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
-            
-            // We've used the prompt, and can't use it again, throw it away
             deferredPrompt = null;
             installBtn.classList.add('hidden-element');
         });
 
-        // 4. Check if already installed / Running as PWA
         window.addEventListener('appinstalled', (evt) => {
-            console.log('FocusTube was installed');
             installBtn.classList.add('hidden-element');
             badge.classList.remove('hidden-element');
         });

@@ -15,9 +15,15 @@
       "purpose": "any maskable"
     },
     {
-      "src": "https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.ico",
-      "sizes": "16x16 32x32 48x48 64x64",
-      "type": "image/x-icon",
+      "src": "https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/shamoeeldatawata-creator/focusyoutube/main/focustube.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

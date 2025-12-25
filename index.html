@@ -49,6 +49,15 @@
             color: #bef264;
         }
         .pagination-btn.active { background-color: #10b981; color: white; border-color: #10b981; }
+
+        /* Install Banner Animation */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -84,7 +93,7 @@
                 </svg>
             </div>
             <div class="space-y-4">
-                <h2 class="text-2xl font-black text-emerald-400 tracking-tight">ZONE IN</h2>
+                <h2 class="text-2xl font-black text-emerald-400 tracking-tight">FOCUS MDOE</h2>
                 <p class="text-zinc-500 max-w-[280px] mx-auto text-sm leading-relaxed">
                     Search above to start your clean session.
                 </p>
@@ -94,6 +103,25 @@
         <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full hidden"></div>
         <div id="pagination-container" class="mt-8 flex items-center gap-2 pb-10 hidden"></div>
     </main>
+
+    <!-- Custom Install Banner -->
+    <div id="install-banner" class="hidden fixed bottom-6 left-4 right-4 z-50 animate-slide-up">
+        <div class="bg-emerald-600 p-4 rounded-3xl shadow-2xl flex items-center justify-between border border-emerald-400/30">
+            <div class="flex items-center gap-3">
+                <div class="bg-black/20 p-2 rounded-xl">
+                    <i data-lucide="download" class="text-white w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-white font-bold text-sm">Install FocusTube</p>
+                    <p id="install-instruction" class="text-emerald-100 text-[10px] uppercase font-bold tracking-wider">Add to your home screen</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button id="install-action-btn" class="bg-white text-emerald-700 px-4 py-2 rounded-xl text-xs font-black shadow-lg">INSTALL</button>
+                <button onclick="hideInstallBanner()" class="bg-emerald-700/50 text-white p-2 rounded-xl"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+    </div>
 
     <div id="player-overlay">
         <div class="p-4 flex items-center gap-4 bg-black border-b border-zinc-900">
@@ -110,12 +138,63 @@
         const API_KEY = 'AIzaSyA4z6nqFaDwHLU1ATkGzZEQUpeUmXsKCh4';
         let currentQuery = '';
         let pageTokens = [''];
+        let deferredPrompt;
 
         lucide.createIcons();
 
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+        }
+
+        // --- PWA INSTALLATION LOGIC ---
+        const installBanner = document.getElementById('install-banner');
+        const installBtn = document.getElementById('install-action-btn');
+        const installText = document.getElementById('install-instruction');
+
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+        if (!isStandalone) {
+            // Android/Chrome handles 'beforeinstallprompt'
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallBanner("Native Install");
+            });
+
+            // iOS Detection (Manually show instructions)
+            if (isIOS) {
+                showInstallBanner("iOS");
+            }
+        }
+
+        function showInstallBanner(type) {
+            installBanner.classList.remove('hidden');
+            installBanner.classList.add('flex');
+            
+            if (type === "iOS") {
+                installText.innerText = "Tap Share then 'Add to Home Screen'";
+                installBtn.innerText = "HOW TO";
+                installBtn.onclick = () => {
+                    alert("To Install FocusTube:\n1. Tap the 'Share' icon (square with arrow) at the bottom.\n2. Scroll down and tap 'Add to Home Screen'.");
+                };
+            } else {
+                installBtn.onclick = () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        deferredPrompt.userChoice.then(() => {
+                            deferredPrompt = null;
+                            hideInstallBanner();
+                        });
+                    }
+                };
+            }
+        }
+
+        function hideInstallBanner() {
+            installBanner.classList.add('hidden');
+            installBanner.classList.remove('flex');
         }
 
         async function performSearch(pageNumber = 1) {
@@ -189,6 +268,7 @@
             container.innerHTML = `<iframe id="focus-player" src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allowfullscreen></iframe>`;
             overlay.classList.add('active-player');
             document.body.style.overflow = 'hidden';
+            hideInstallBanner(); // Hide prompt when watching to save space
         }
 
         function exitPlayer() {
